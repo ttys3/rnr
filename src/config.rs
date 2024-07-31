@@ -1,5 +1,5 @@
+use std::io::IsTerminal;
 use app::{create_app, FROM_FILE_SUBCOMMAND, TO_ASCII_SUBCOMMAND};
-use atty;
 use clap::ArgMatches;
 use output::Printer;
 use regex::Regex;
@@ -196,7 +196,7 @@ fn parse_arguments() -> Result<Config, String> {
 
 /// Detect if output must be colored and returns a properly configured printer.
 fn detect_output_color() -> Printer {
-    if atty::is(atty::Stream::Stdout) {
+    if std::io::stdout().is_terminal() {
         #[cfg(not(windows))]
         {
             Printer::color()
