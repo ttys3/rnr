@@ -27,10 +27,12 @@ pub fn create_app<'a>() -> Command {
         Arg::new("backup")
             .long("backup")
             .short('b')
+            .action(ArgAction::SetTrue)
             .help("Generate file backups before renaming"),
         Arg::new("silent")
             .long("silent")
             .short('s')
+            .action(ArgAction::SetTrue)
             .help("Do not print any information"),
         Arg::new("color")
             .long("color")
@@ -60,6 +62,7 @@ pub fn create_app<'a>() -> Command {
             .long("include-dirs")
             .short('D')
             .group("TEST")
+            .action(ArgAction::SetTrue)
             .help("Rename matching directories"),
         Arg::new("recursive")
             .long("recursive")
@@ -76,6 +79,7 @@ pub fn create_app<'a>() -> Command {
             .help("Set max depth in recursive mode"),
         Arg::new("hidden")
             .requires("recursive")
+            .action(ArgAction::SetTrue)
             .long("hidden")
             .short('x')
             .help("Include hidden files and directories"),
@@ -126,6 +130,7 @@ pub fn create_app<'a>() -> Command {
                     Arg::new("undo")
                         .long("undo")
                         .short('u')
+                        .action(ArgAction::SetTrue)
                         .help("Undo the operations from the dump file"),
                 )
                 .about("Read operations from a dump file"),

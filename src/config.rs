@@ -83,7 +83,7 @@ impl ArgumentParser<'_> {
         if let AppCommand::FromFile = self.command {
             return Ok(RunMode::FromFile {
                 path: String::from(self.matches.get_one::<String>("DUMPFILE").unwrap_or(&String::new())),
-                undo: self.matches.contains_id("undo"),
+                undo: self.matches.get_flag("undo"),
             });
         }
 
@@ -95,21 +95,12 @@ impl ArgumentParser<'_> {
             .map(String::from)
             .collect();
 
-        if self.matches.contains_id("recursive") {
-            let max_depth = if self.matches.contains_id("max-depth") {
-                Some(
-                    *self.matches
-                        .get_one::<usize>("max-depth")
-                        .unwrap_or(&0),
-                )
-            } else {
-                None
-            };
-
+        if self.matches.get_flag("recursive") {
+            let max_depth = self.matches.get_one::<usize>("max-depth").copied();
             Ok(RunMode::Recursive {
                 paths: input_paths,
                 max_depth,
-                hidden: self.matches.contains_id("hidden"),
+                hidden: self.matches.get_flag("hidden"),
             })
         } else {
             Ok(RunMode::Simple(input_paths))
@@ -160,13 +151,13 @@ fn parse_arguments() -> Result<Config, String> {
     };
 
     // Set dump defaults: write in force mode and do not in dry-run unless it is explicitly asked
-    let dump = if matches.contains_id("force") {
-        !matches.contains_id("no-dump")
+    let dump = if !matches.get_flag("dry-run") {
+        !matches.get_flag("no-dump")
     } else {
-        matches.contains_id("dump")
+        matches.get_flag("dump")
     };
 
-    let printer = if matches.contains_id("silent") {
+    let printer = if matches.get_flag("silent") {
         Printer::silent()
     } else {
         match matches.get_one::<String>("color").unwrap_or(&"auto".to_string()).deref() {
@@ -186,9 +177,9 @@ fn parse_arguments() -> Result<Config, String> {
     let replace_mode = argument_parser.parse_replace_mode()?;
 
     Ok(Config {
-        force: matches.contains_id("force"),
-        backup: matches.contains_id("backup"),
-        dirs: matches.contains_id("include-dirs"),
+        force: matches.get_flag("force"),
+        backup: matches.get_flag("backup"),
+        dirs: matches.get_flag("include-dirs"),
         dump,
         run_mode,
         replace_mode,
