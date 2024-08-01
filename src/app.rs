@@ -22,7 +22,8 @@ pub fn create_app<'a>() -> Command {
             .long("force")
             .short('f')
             .action(ArgAction::SetTrue)
-            .help("Make actual changes to files"),
+            .help("Make actual changes to files")
+            .conflicts_with("dry-run"),
         Arg::new("backup")
             .long("backup")
             .short('b')
@@ -38,10 +39,12 @@ pub fn create_app<'a>() -> Command {
             .help("Set color output mode"),
         Arg::new("dump")
             .long("dump")
+            .action(ArgAction::SetTrue)
             .help("Force dumping operations into a file even in dry-run mode")
             .conflicts_with("no-dump"),
         Arg::new("no-dump")
             .long("no-dump")
+            .action(ArgAction::SetTrue)
             .help("Do not dump operations into a file")
             .conflicts_with("dump"),
     ];
