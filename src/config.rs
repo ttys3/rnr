@@ -1,9 +1,12 @@
+use std::ffi::OsString;
 use std::io::IsTerminal;
-use app::{create_app, FROM_FILE_SUBCOMMAND, TO_ASCII_SUBCOMMAND};
+use std::ops::Deref;
+use crate::app::{create_app, FROM_FILE_SUBCOMMAND, TO_ASCII_SUBCOMMAND};
 use clap::ArgMatches;
-use output::Printer;
+use crate::output::Printer;
 use regex::Regex;
 use std::sync::Arc;
+use clap::builder::TypedValueParser;
 
 /// This module is defined Config struct to carry application configuration. This struct is created
 /// from the parsed arguments from command-line input using `clap`. Only UTF-8 valid arguments are
@@ -70,7 +73,7 @@ impl AppCommand {
 }
 
 struct ArgumentParser<'a> {
-    matches: &'a ArgMatches<'a>,
+    matches: &'a ArgMatches,
     printer: &'a Printer,
     command: &'a AppCommand,
 }
@@ -79,27 +82,25 @@ impl ArgumentParser<'_> {
     fn parse_run_mode(&self) -> Result<RunMode, String> {
         if let AppCommand::FromFile = self.command {
             return Ok(RunMode::FromFile {
-                path: String::from(self.matches.value_of("DUMPFILE").unwrap_or_default()),
-                undo: self.matches.is_present("undo"),
+                path: String::from(self.matches.get_one::<String>("DUMPFILE").unwrap_or(&String::new())),
+                undo: self.matches.contains_id("undo"),
             });
         }
 
         // Detect run mode and set parameters accordingly
         let input_paths: Vec<String> = self
             .matches
-            .values_of("PATH(S)")
+            .get_many::<String>("PATH(S)")
             .unwrap_or_default()
             .map(String::from)
             .collect();
 
-        if self.matches.is_present("recursive") {
-            let max_depth = if self.matches.is_present("max-depth") {
+        if self.matches.contains_id("recursive") {
+            let max_depth = if self.matches.contains_id("max-depth") {
                 Some(
-                    self.matches
-                        .value_of("max-depth")
-                        .unwrap_or_default()
-                        .parse::<usize>()
-                        .unwrap_or_default(),
+                    *self.matches
+                        .get_one::<usize>("max-depth")
+                        .unwrap_or(&0),
                 )
             } else {
                 None
@@ -108,7 +109,7 @@ impl ArgumentParser<'_> {
             Ok(RunMode::Recursive {
                 paths: input_paths,
                 max_depth,
-                hidden: self.matches.is_present("hidden"),
+                hidden: self.matches.contains_id("hidden"),
             })
         } else {
             Ok(RunMode::Simple(input_paths))
@@ -121,7 +122,7 @@ impl ArgumentParser<'_> {
         }
 
         // Get and validate regex expression and replacement from arguments
-        let expression = match Regex::new(self.matches.value_of("EXPRESSION").unwrap_or_default()) {
+        let expression = match Regex::new(self.matches.get_one::<String>("EXPRESSION").unwrap_or(&String::new()).deref()) {
             Ok(expr) => expr,
             Err(err) => {
                 return Err(format!(
@@ -131,14 +132,12 @@ impl ArgumentParser<'_> {
                 ));
             }
         };
-        let replacement = String::from(self.matches.value_of("REPLACEMENT").unwrap_or_default());
+        let replacement = String::from(self.matches.get_one::<String>("REPLACEMENT").unwrap_or(&String::new()).deref());
 
-        let limit = self
+        let limit = *self
             .matches
-            .value_of("replace-limit")
-            .unwrap_or_default()
-            .parse::<usize>()
-            .unwrap_or_default();
+            .get_one::<usize>("replace-limit")
+            .unwrap_or(&0);
 
         Ok(ReplaceMode::RegExp {
             expression,
@@ -153,21 +152,24 @@ fn parse_arguments() -> Result<Config, String> {
     let app = create_app();
     let matches = app.get_matches();
     let (command, matches) = match matches.subcommand() {
-        (name, Some(submatches)) => (AppCommand::from_str(name)?, submatches),
-        (_, None) => (AppCommand::Root, &matches), // Always defaults to root if no submatches found.
+        Some((name, submatches)) => (AppCommand::from_str(name)?, submatches),
+        None  => (AppCommand::Root, &matches), // Always defaults to root if no submatches found.
+        _ => {
+            return Err("No command provided".to_string());
+        }
     };
 
     // Set dump defaults: write in force mode and do not in dry-run unless it is explicitly asked
-    let dump = if matches.is_present("force") {
-        !matches.is_present("no-dump")
+    let dump = if matches.contains_id("force") {
+        !matches.contains_id("no-dump")
     } else {
-        matches.is_present("dump")
+        matches.contains_id("dump")
     };
 
-    let printer = if matches.is_present("silent") {
+    let printer = if matches.contains_id("silent") {
         Printer::silent()
     } else {
-        match matches.value_of("color").unwrap_or("auto") {
+        match matches.get_one::<String>("color").unwrap_or(&"auto".to_string()).deref() {
             "always" => Printer::color(),
             "never" => Printer::no_color(),
             _ => detect_output_color(), // Ignore non-valid values and use auto.
@@ -184,9 +186,9 @@ fn parse_arguments() -> Result<Config, String> {
     let replace_mode = argument_parser.parse_replace_mode()?;
 
     Ok(Config {
-        force: matches.is_present("force"),
-        backup: matches.is_present("backup"),
-        dirs: matches.is_present("include-dirs"),
+        force: matches.contains_id("force"),
+        backup: matches.contains_id("backup"),
+        dirs: matches.contains_id("include-dirs"),
         dump,
         run_mode,
         replace_mode,

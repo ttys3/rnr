@@ -1,4 +1,5 @@
-use clap::{App, AppSettings, Arg, SubCommand};
+use clap::{Arg, ArgAction};
+use clap::Command;
 use std::ffi::{OsStr, OsString};
 
 /// From file subcommand name.
@@ -8,36 +9,38 @@ pub const FROM_FILE_SUBCOMMAND: &str = "from-file";
 pub const TO_ASCII_SUBCOMMAND: &str = "to-ascii";
 
 /// Create application using clap. It sets all options and command-line help.
-pub fn create_app<'a>() -> App<'a, 'a> {
+pub fn create_app<'a>() -> Command {
     // These commons args are shared by all commands.
     let common_args = [
-        Arg::with_name("dry-run")
+        Arg::new("dry-run")
             .long("dry-run")
-            .short("n")
+            .short('n')
+            .action(ArgAction::SetTrue)
             .help("Only show what would be done (default mode)")
             .conflicts_with("force"),
-        Arg::with_name("force")
+        Arg::new("force")
             .long("force")
-            .short("f")
+            .short('f')
+            .action(ArgAction::SetTrue)
             .help("Make actual changes to files"),
-        Arg::with_name("backup")
+        Arg::new("backup")
             .long("backup")
-            .short("b")
+            .short('b')
             .help("Generate file backups before renaming"),
-        Arg::with_name("silent")
+        Arg::new("silent")
             .long("silent")
-            .short("s")
+            .short('s')
             .help("Do not print any information"),
-        Arg::with_name("color")
+        Arg::new("color")
             .long("color")
-            .possible_values(&["always", "auto", "never"])
+            .value_parser(["always", "auto", "never"])
             .default_value("auto")
             .help("Set color output mode"),
-        Arg::with_name("dump")
+        Arg::new("dump")
             .long("dump")
             .help("Force dumping operations into a file even in dry-run mode")
             .conflicts_with("no-dump"),
-        Arg::with_name("no-dump")
+        Arg::new("no-dump")
             .long("no-dump")
             .help("Do not dump operations into a file")
             .conflicts_with("dump"),
@@ -45,87 +48,87 @@ pub fn create_app<'a>() -> App<'a, 'a> {
 
     // Path related arguments.
     let path_args = [
-        Arg::with_name("PATH(S)")
+        Arg::new("PATH(S)")
             .help("Target paths")
-            .validator_os(is_valid_string)
-            .multiple(true)
-            .required(true),
-        Arg::with_name("include-dirs")
+            .num_args(1..)
+            .value_parser(clap::builder::StringValueParser::new())
+            .required(true).index(3),
+        Arg::new("include-dirs")
             .long("include-dirs")
-            .short("D")
+            .short('D')
             .group("TEST")
             .help("Rename matching directories"),
-        Arg::with_name("recursive")
+        Arg::new("recursive")
             .long("recursive")
-            .short("r")
+            .short('r')
+            .action(ArgAction::SetTrue)
             .help("Recursive mode"),
-        Arg::with_name("max-depth")
+        Arg::new("max-depth")
             .requires("recursive")
             .long("max-depth")
-            .short("d")
-            .takes_value(true)
+            .short('d')
+            .num_args(1)
             .value_name("LEVEL")
-            .validator(is_integer)
+            .value_parser(clap::builder::RangedI64ValueParser::<i64>::new())
             .help("Set max depth in recursive mode"),
-        Arg::with_name("hidden")
+        Arg::new("hidden")
             .requires("recursive")
             .long("hidden")
-            .short("x")
+            .short('x')
             .help("Include hidden files and directories"),
     ];
 
-    App::new(crate_name!())
-        .setting(AppSettings::SubcommandsNegateReqs)
-        .version(crate_version!())
-        .author(crate_authors!())
-        .about(crate_description!())
+    Command::new("rnr")
+        .version(env!("CARGO_PKG_VERSION"))
+        .author(env!("CARGO_PKG_AUTHORS"))
+        .about(env!("CARGO_PKG_DESCRIPTION"))
         .arg(
-            Arg::with_name("EXPRESSION")
+            Arg::new("EXPRESSION")
                 .help("Expression to match (can be a regex)")
                 .required(true)
-                .validator_os(is_valid_string)
+                .value_parser(clap::builder::StringValueParser::new())
                 .index(1),
         )
         .arg(
-            Arg::with_name("REPLACEMENT")
+            Arg::new("REPLACEMENT")
                 .help("Expression replacement (use single quotes for capture groups)")
                 .required(true)
-                .validator_os(is_valid_string)
+                .value_parser(clap::builder::StringValueParser::new())
                 .index(2),
         )
         .arg(
-            Arg::with_name("replace-limit")
+            Arg::new("replace-limit")
                 .long("replace-limit")
-                .short("l")
-                .takes_value(true)
+                .short('l')
+                .num_args(1)
                 .value_name("LIMIT")
                 .default_value("1")
-                .validator(is_integer)
+                .value_parser(clap::builder::RangedI64ValueParser::<usize>::new())
                 .help("Limit of replacements, all matches if set to 0"),
         )
         .args(&common_args)
         .args(&path_args)
         .subcommand(
-            SubCommand::with_name(FROM_FILE_SUBCOMMAND)
+            Command::new(FROM_FILE_SUBCOMMAND)
                 .args(&common_args)
                 .arg(
-                    Arg::with_name("DUMPFILE")
-                        .takes_value(true)
+                    Arg::new("DUMPFILE")
+                        .num_args(1)
                         .required(true)
                         .value_name("DUMPFILE")
-                        .validator_os(is_valid_string)
+                        .value_parser(clap::builder::StringValueParser::new())
                         .index(1),
                 )
                 .arg(
-                    Arg::with_name("undo")
+                    Arg::new("undo")
                         .long("undo")
-                        .short("u")
+                        .short('u')
                         .help("Undo the operations from the dump file"),
                 )
                 .about("Read operations from a dump file"),
         )
         .subcommand(
-            SubCommand::with_name(TO_ASCII_SUBCOMMAND)
+            Command::new(TO_ASCII_SUBCOMMAND)
                 .args(&common_args)
                 .args(&path_args)
                 .about("Replace file name UTF-8 chars with ASCII chars representation."),
@@ -137,13 +140,5 @@ fn is_integer(arg_value: String) -> Result<(), String> {
     match arg_value.parse::<usize>() {
         Ok(_) => Ok(()),
         Err(_) => Err("Value provided is not an integer".to_string()),
-    }
-}
-
-/// Check if the input provided is valid UTF-8
-fn is_valid_string(os_str: &OsStr) -> Result<(), OsString> {
-    match os_str.to_str() {
-        Some(_) => Ok(()),
-        None => Err(OsString::from("Value provided is not a valid UTF-8 string")),
     }
 }

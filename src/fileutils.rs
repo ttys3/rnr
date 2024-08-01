@@ -1,5 +1,5 @@
-use config::RunMode;
-use error::*;
+use crate::config::RunMode;
+use crate::error::*;
 use path_abs::PathAbs;
 use std::collections::HashMap;
 use std::fs;
@@ -18,7 +18,10 @@ pub fn get_paths(mode: &RunMode) -> PathList {
             hidden,
         } => {
             // Detect if is a hidden file or directory, always include given path
-            let is_hidden = |f: &DirEntry| -> bool {
+            let should_filter = |f: &DirEntry| -> bool {
+                // if do not allow hidden file match
+                // filter none valid utf-8 filename
+                // filter dot files (hidden files)
                 if !hidden && f.depth() > 0 {
                     f.file_name()
                         .to_str()
@@ -37,7 +40,7 @@ pub fn get_paths(mode: &RunMode) -> PathList {
                 };
                 let mut walk_list: PathList = walkdir
                     .into_iter()
-                    .filter_entry(is_hidden)
+                    .filter_entry(should_filter)
                     .filter_map(|e| e.ok())
                     .map(|p| p.path().to_path_buf())
                     .collect();
@@ -535,5 +538,19 @@ mod test {
         for file in &non_listed_files {
             assert!(!mock_paths.contains(file));
         }
+    }
+
+    #[test]
+    fn get_invalid_filename_list() {
+        // Get recursive list of paths walking directories
+        let mut path_list = PathList::new();
+        let walkdir = WalkDir::new("/media/wd10t2024/gmw1024/xxxxx");
+        let mut walk_list: PathList = walkdir
+            .into_iter()
+            .filter_map(|e| e.ok())
+            .map(|p| p.path().to_path_buf())
+            .collect();
+        path_list.append(&mut walk_list);
+        println!("{:?}", path_list);
     }
 }

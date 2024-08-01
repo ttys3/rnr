@@ -1,8 +1,9 @@
 #[macro_use]
 extern crate clap;
 
-use clap::Shell;
 use std::fs;
+use clap::Command;
+use clap_complete::{generate, Generator, Shell};
 
 #[path = "src/app.rs"]
 mod app;
@@ -18,9 +19,14 @@ fn main() {
     };
     fs::create_dir_all(&outdir).unwrap();
 
-    let mut app = app::create_app();
-    app.gen_completions("rnr", Shell::Bash, &outdir);
-    app.gen_completions("rnr", Shell::Zsh, &outdir);
-    app.gen_completions("rnr", Shell::Fish, &outdir);
-    app.gen_completions("rnr", Shell::PowerShell, &outdir);
+    // let mut app = app::create_app();
+    //
+    // app.gen_completions("rnr", Shell::Bash, &outdir);
+    // app.gen_completions("rnr", Shell::Zsh, &outdir);
+    // app.gen_completions("rnr", Shell::Fish, &outdir);
+    // app.gen_completions("rnr", Shell::PowerShell, &outdir);
 }
+
+// fn print_completions<G: Generator>(gen: G, cmd: &mut Command) {
+//     generate(gen, cmd, cmd.get_name().to_string(), &mut io::stdout());
+// }

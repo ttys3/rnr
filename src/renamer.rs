@@ -1,9 +1,9 @@
 use any_ascii::any_ascii;
-use config::{Config, ReplaceMode, RunMode};
-use dumpfile;
-use error::*;
-use fileutils::{cleanup_paths, create_backup, get_paths};
-use solver;
+use crate::config::{Config, ReplaceMode, RunMode};
+use crate::dumpfile;
+use crate::error::*;
+use crate::fileutils::{cleanup_paths, create_backup, get_paths};
+use crate::solver;
 use solver::{Operation, Operations, RenameMap};
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -175,8 +175,8 @@ impl Renamer {
 mod test {
     extern crate tempfile;
     use super::*;
-    use config::RunMode;
-    use output::Printer;
+    use crate::config::RunMode;
+    use crate::output::Printer;
     use regex::Regex;
     use std::fs;
     use std::path::Path;

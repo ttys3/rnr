@@ -12,10 +12,11 @@ homepage = "https://github.com/ismaelgv/rnr"
 repository = "https://github.com/ismaelgv/rnr"
 build = "build.rs"
 readme = "README.md"
+edition = "2021"
 
 [dependencies]
 ansi_term = "0.12"
-clap = "~4.5"
+clap = { version = "~4.5" }
 chrono = "0.4"
 path_abs = "0.5"
 regex = "1"
@@ -29,6 +30,7 @@ any_ascii = "0.3.2"
 
 [build-dependencies]
 clap = "~4.5"
+clap_complete = "4.5.12"
 
 [badges]
 travis-ci = { repository = "ismaelgv/rnr", branch = "master" }

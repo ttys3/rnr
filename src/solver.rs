@@ -1,6 +1,6 @@
-use error::*;
-use fileutils::{is_same_file, PathList};
-use path_abs::PathAbs;
+use crate::error::*;
+use crate::fileutils::{is_same_file, PathList};
+use path_abs::{PathAbs, PathInfo};
 use std::collections::HashMap;
 use std::path::PathBuf;
 
@@ -139,12 +139,12 @@ fn sort_existing_targets(
         let sources: PathList = existing_targets
             .iter()
             .map(|x| rename_map.get(x).cloned().unwrap())
-            .map(|p| PathAbs::new(p).unwrap().to_path_buf())
+            .map(|p| PathAbs::new(p).unwrap().as_path().to_path_buf())
             .collect();
 
         // Select targets without conflicts in sources
         for (index, target) in existing_targets.iter().enumerate() {
-            let absolute_target = PathAbs::new(target).unwrap().to_path_buf();
+            let absolute_target = PathAbs::new(target).unwrap().as_path().to_path_buf();
             if !sources.contains(&absolute_target) {
                 selected_index = Some(index);
                 break;
@@ -171,7 +171,7 @@ fn sort_existing_targets(
 mod test {
     extern crate tempfile;
     use super::*;
-    use fileutils::create_symlink;
+    use crate::fileutils::create_symlink;
     use std::fs;
 
     #[test]
